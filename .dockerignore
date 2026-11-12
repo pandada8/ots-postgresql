@@ -1,0 +1,7 @@
+.git
+.gitignore
+ots-postgresql
+dist
+*.log
+.env
+e2e

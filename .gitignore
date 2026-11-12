@@ -1,0 +1,4 @@
+/ots-postgresql
+/dist/
+*.log
+.env
