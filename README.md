@@ -1,5 +1,7 @@
 # ots-postgresql
 
+[![CI](https://github.com/pandada8/ots-postgresql/actions/workflows/ci.yml/badge.svg)](https://github.com/pandada8/ots-postgresql/actions/workflows/ci.yml)
+
 `ots-postgresql` 是一个暴露 **阿里云表格存储（Tablestore / OTS）协议** 的服务，把请求代理到一个 **PostgreSQL** 数据库。它用 PostgreSQL 模拟 OTS 的数据模型与读写接口，方便在 **开发、联调、单元测试** 等场景下，让使用官方 Tablestore SDK 的应用无需连接真实 OTS 实例即可运行。
 
 > ⚠️ 本项目仅用于开发与测试，**不是** 生产级 OTS 替代品。它在一致性、性能、容量与功能完整性上都与真实表格存储不同，请勿用于生产环境。
@@ -65,6 +67,12 @@
 - 多元索引的 `KEYWORD` / `TEXT` 字段以 B-tree 索引加速，受 PostgreSQL **单条索引项约 2704 字节** 的上限约束：超长关键字 / 文本写入可能导致索引行超限报错（开发测试场景通常不会触及）。
 
 ## 快速开始
+
+预构建镜像发布在 GHCR，`main` 分支每次推送由 CI 自动构建（`v*` tag 会额外打上 semver 标签）：
+
+```bash
+docker pull ghcr.io/pandada8/ots-postgresql:latest
+```
 
 ### 方式一：Docker Compose（推荐）
 
