@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -34,6 +35,7 @@ func main() {
 	accessKeySecret := flag.String("access-key-secret", envDefault("OTS_ACCESS_KEY_SECRET", ""), "access key secret used to verify signatures")
 	instance := flag.String("instance", envDefault("OTS_INSTANCE_NAME", ""), "instance name required from clients (empty disables check)")
 	logLevel := flag.String("log-level", envDefault("OTS_LOG_LEVEL", "info"), "log level: debug, info, warn, error")
+	bootstrapFile := flag.String("bootstrap", envDefault("OTS_BOOTSTRAP_FILE", ""), "JSON file describing tables and search indexes to ensure at startup (empty disables bootstrap)")
 	flag.Parse()
 
 	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: parseLogLevel(*logLevel)}))
@@ -48,6 +50,13 @@ func main() {
 		os.Exit(1)
 	}
 	defer engine.Close()
+
+	if *bootstrapFile != "" {
+		if err := runBootstrap(ctx, engine, *bootstrapFile); err != nil {
+			logger.Error("bootstrap failed", "error", err)
+			os.Exit(1)
+		}
+	}
 
 	srv := server.New(server.Config{
 		Engine:          engine,
@@ -91,4 +100,16 @@ func parseLogLevel(level string) slog.Level {
 	default:
 		return slog.LevelInfo
 	}
+}
+
+func runBootstrap(ctx context.Context, engine *storage.Engine, path string) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("read bootstrap file: %w", err)
+	}
+	spec, err := storage.ParseBootstrapSpec(data)
+	if err != nil {
+		return err
+	}
+	return engine.Bootstrap(ctx, spec)
 }

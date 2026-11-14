@@ -120,8 +120,34 @@ go build -o ots-postgresql .
 | `-access-key-secret` | `OTS_ACCESS_KEY_SECRET` | 空 | 用于验签的 AccessKeySecret |
 | `-instance` | `OTS_INSTANCE_NAME` | 空 | 要求客户端携带的实例名（空则不校验） |
 | `-log-level` | `OTS_LOG_LEVEL` | `info` | 日志级别：`debug` / `info` / `warn` / `error` |
+| `-bootstrap` | `OTS_BOOTSTRAP_FILE` | 空 | 启动时按 JSON 描述幂等创建表与多元索引（空则跳过） |
 
 只要 `-access-key-id`、`-access-key-secret`、`-instance` 任一非空即开启认证校验；三者全空时关闭认证，便于本地快速联调。
+
+### 启动建表（bootstrap）
+
+`-bootstrap schema.json` 会在监听开始前确保 JSON 中声明的表和多元索引存在：已存在的对象原样跳过，不改动数据，因此可以随部署反复执行。适合由 IaC 渲染 schema、代理先于业务服务就绪的场景。
+
+```json
+{
+  "tables": [{
+    "name": "transactions",
+    "primary_key": [{"name": "transaction_id", "type": "STRING"}],
+    "defined_columns": [{"name": "amount", "type": "INTEGER"}],
+    "options": {"time_to_live": -1, "max_versions": 1},
+    "search_indexes": [{
+      "name": "si_billing_turns",
+      "fields": [
+        {"name": "user_id", "type": "KEYWORD", "index": true, "sort_and_agg": true},
+        {"name": "amount", "type": "LONG", "index": true, "sort_and_agg": true}
+      ],
+      "index_sort": [{"field": "amount", "descending": true}]
+    }]
+  }]
+}
+```
+
+主键类型为 `STRING` / `INTEGER` / `BINARY`；索引字段类型为 `KEYWORD` / `TEXT` / `LONG` / `DOUBLE` / `BOOLEAN` / `DATE`。`index_sort` 中省略 `field` 表示主键排序。
 
 ## SDK 示例（Go）
 
